@@ -15,7 +15,7 @@ type Server struct {
 
 var (
 	database *pgx.Conn
-	permId   = 0
+	permId   = 1
 	err      error
 )
 
@@ -48,11 +48,11 @@ func shortenUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	var returnUrl string
 	err := database.QueryRow(context.Background(), "select shortened from urls.urls where original_url=$1", url).Scan(&returnUrl)
-	if err != nil {
+	if err != nil && err != pgx.ErrNoRows {
 		http.Error(w, "failed to access the database", http.StatusInternalServerError)
 	}
 	if len(returnUrl) > 0 {
-		fmt.Fprintf(w, "url: https://amogus-shortener.soloviev1d.repl.co/%s", returnUrl)
+		fmt.Fprintf(w, "url: https://url-shortener.soloviev1d.repl.co/%s", returnUrl)
 		return
 	}
 
@@ -62,6 +62,7 @@ func shortenUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = database.QueryRow(context.Background(), "select shortened from urls.urls where id=$1", permId).Scan(&returnUrl)
+	fmt.Println(returnUrl, permId)
 	if err != nil {
 		http.Error(w, "failed to retrieve shortened url", http.StatusInternalServerError)
 	}
@@ -69,8 +70,10 @@ func shortenUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if permId <= 720 {
 		permId++
 	} else {
-		permId = 0
+		permId = 1
 	}
+
+	fmt.Fprintf(w, "url: https://url-shortener.soloviev1d.repl.co/%s", returnUrl)
 
 }
 
